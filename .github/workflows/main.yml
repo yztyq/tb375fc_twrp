@@ -10,11 +10,11 @@ on:
       MANIFEST_BRANCH:
         description: 'MANIFEST_BRANCH'
         required: true
-        default: 'twrp-12.1'
+        default: 'twrp-14.1'
       DEVICE_TREE_URL:
         description: 'DEVICE_TREE_URL'
         required: true
-        default: 'https://github.com/2426120557/tb375fc'
+        default: 'https://github.com/yztyq/tb375fc_twrp'
       DEVICE_TREE_BRANCH:
         description: 'DEVICE_TREE_BRANCH'
         required: true
@@ -186,7 +186,7 @@ jobs:
       uses: haya14busa/action-cond@v1
       id: buildtree
       with:
-        cond: ${{ github.event.inputs.MANIFEST_BRANCH == 'twrp-11' || github.event.inputs.MANIFEST_BRANCH == 'twrp-12.1' }}
+        cond: ${{ github.event.inputs.MANIFEST_BRANCH == 'twrp-11' || github.event.inputs.MANIFEST_BRANCH == 'twrp-12.1' || github.event.inputs.MANIFEST_BRANCH == 'twrp-14.1' }}
         if_true: twrp
         if_false: omni
 
@@ -275,10 +275,28 @@ jobs:
         if-no-files-found: warn
         retention-days: 7
 
+    - name: Collect artifacts
+      run: |
+        set -e
+        OUT="workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}"
+        mkdir -p artifacts
+        echo "=== $OUT ==="
+        ls -l "$OUT" || true
+        found=0
+        for f in vendor_boot.img boot.img recovery.img; do
+          if [ -f "$OUT/$f" ]; then
+            cp "$OUT/$f" artifacts/
+            echo "collected: $f"
+            found=1
+          fi
+        done
+        ls -l artifacts
+        test "$found" -eq 1
+
     - name: Upload to Release
       uses: softprops/action-gh-release@v2
       with:
-        files: workspace/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/vendor_boot.img
+        files: artifacts/*.img
         name: ${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
         tag_name: ${{ github.run_id }}
         body: |
